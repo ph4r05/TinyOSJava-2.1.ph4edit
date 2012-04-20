@@ -107,12 +107,9 @@ abstract public class SFProtocol extends AbstractSource implements TimestampedPa
             // read 8 bytes - timestamp
             byte[] timestampByte = readN(8);
             lastTimeStamp = ByteBuffer.allocate(8).put(timestampByte).getLong(0);
-            System.err.println("Read Packet Timestamp: " + lastTimeStamp);
             
             // read rest of the packet
             read = readN((size[0]-8) & 0xff);
-            System.err.println("PacketDump: ");
-            Dump.printPacket(System.err, read);
         } else {
             if (size[0] == 0)
                 throw new IOException("0-byte packet");
