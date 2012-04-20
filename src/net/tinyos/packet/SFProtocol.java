@@ -40,7 +40,7 @@ import java.nio.ByteBuffer;
  * with the TinyOS 1.x serial forwarder protocol to avoid accidentally
  * mixing TinyOS 1.x and 2.x serial forwarders, applications, etc.
  */
-abstract public class SFProtocol extends AbstractSource
+abstract public class SFProtocol extends AbstractSource implements TimestampedPacketSource
 {
     // Protocol version, written at connection-open time
     // 2 bytes: first byte is always 'U', second byte is
@@ -49,7 +49,7 @@ abstract public class SFProtocol extends AbstractSource
     // current protocols:
     // ' ': initial protocol, no further connection data, packets are
     //      1-byte length followed by n-bytes data. Length must be at least 1.
-    final static byte VERSION[] = {'U', ' '};
+    final static byte VERSION[] = {'U', 'T'};
     int version; // The protocol version we're running (negotiated)
     
     /**
@@ -60,6 +60,8 @@ abstract public class SFProtocol extends AbstractSource
     protected InputStream is;
     protected OutputStream os;
 
+    protected long lastTimeStamp = 0;
+    
     protected SFProtocol(String name) {
 	super(name);
     }
@@ -83,22 +85,38 @@ abstract public class SFProtocol extends AbstractSource
 	switch (version) {
 	case ' ':
 	    break;
+        case 'T':
+	    break;    
 	default:
 	    throw new IOException("bad protocol version");
 	}
     }
 	
     protected byte[] readSourcePacket() throws IOException {
-	// Protocol is straightforward: 1 size byte, <n> data bytes
+	// Protocol is straightforward: 1 size byte, 8 bytes timestamp, <n-8> data bytes
 	byte[] size = readN(1);
 
-	if (size[0] == 0)
+	if (size[0] <= 8)
 	    throw new IOException("0-byte packet");
-	byte[] read = readN(size[0] & 0xff);
+        
+        // decide what to do depending on negotiated protocol version
+        if (version=='T'){
+            // read 8 bytes - timestamp
+            lastTimeStamp = ByteBuffer.allocate(8).put(readN(8)).getLong();
+        } else {
+            lastTimeStamp = 0;
+        }
+        
+	byte[] read = readN((size[0]-8) & 0xff);
 	//Dump.dump("reading", read);
 	return read;
     }
 
+    @Override
+    public long getLastTimestamp() {
+        return lastTimeStamp;
+    }
+    
     protected byte[] readN(int n) throws IOException {
 	byte[] data = new byte[n];
 	int offset = 0;
@@ -123,12 +141,22 @@ abstract public class SFProtocol extends AbstractSource
 	    throw new IOException("packet too short");
 	//Dump.dump("writing", packet);
         
-        // write length of packet - include timestamp here
-	os.write((byte)(packet.length + TIMESTAMP_SIZE));
-        // write timestamp first
-        os.write(ByteBuffer.allocate(8).putLong(mili).array());
-        // now write packet itself
-	os.write(packet);
+        // decide what to do depending on negotiated protocol version
+        if (version=='T'){
+            // write length of packet - include timestamp here
+            os.write((byte)(packet.length + TIMESTAMP_SIZE));
+            // write timestamp first
+            os.write(ByteBuffer.allocate(8).putLong(mili).array());
+            // now write packet itself            
+            os.write(packet);
+        } else {
+            // default version
+            // write length of packet - include timestamp here
+            os.write((byte)(packet.length));
+            // now write packet itself
+            os.write(packet);
+        }
+
 	os.flush();
 	return true;
     }

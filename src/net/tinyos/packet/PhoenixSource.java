@@ -148,13 +148,27 @@ public class PhoenixSource extends Thread implements PhoenixError {
     }
 
     private void packetDipatchLoop() throws IOException {
-	for (;;) {
-	    dispatch(source.readPacket());
-	}
+        // decide what to do depending on type of packet source
+        if (this.source instanceof TimestampedPacketSource){
+            final TimestampedPacketSource tSource = (TimestampedPacketSource) source;
+            // this packet source provides timestamping infos
+            for (;;) {
+                byte[] readPacket = tSource.readPacket();
+                dispatch(readPacket, tSource.getLastTimestamp());
+            }
+        } else {        
+            // faster way than deciding instance everytime in loop, isn't it?
+            for (;;) {
+                dispatch(source.readPacket());
+            }
+        }
     }
 
     private void dispatch(byte[] packet) {
-        long mili = System.currentTimeMillis();
+        this.dispatch(packet, System.currentTimeMillis());
+    }
+    
+    private void dispatch(byte[] packet, long mili) {
         try {
             for (PacketListenerIF listener : listeners) {
                 listener.packetReceived(packet, mili);
