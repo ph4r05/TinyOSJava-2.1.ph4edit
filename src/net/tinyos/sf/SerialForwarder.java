@@ -91,6 +91,30 @@ public class SerialForwarder implements Messenger {
     new SerialForwarder(args);
   }
 
+  /**
+   * Initializes new serial forwarder instance for use in application as new thread.
+   * Thread is not started, only initialized and returned as new instance.
+   * To start working it is needed to start thread with call startListenServer()
+   * 
+   * @return 
+   */
+  public static SerialForwarder newObjInstance(String comm, int port){
+        SerialForwarder serialForwarder = new SerialForwarder();
+        serialForwarder.setMotecom(comm);
+        serialForwarder.setServerPort(port);
+        serialForwarder.renderer = new SFNullRenderer();
+        serialForwarder.verbose.on = false;
+        serialForwarder.debug.on = false;
+        return serialForwarder;
+  }
+  
+  /**
+   * Empty constructor to build inside another application
+   */
+    public SerialForwarder() {
+
+    }
+  
   public SerialForwarder(String[] args) throws IOException {
     ProcessCommandLineArgs(args);
 
@@ -161,6 +185,7 @@ public class SerialForwarder implements Messenger {
     renderer = SFWindow.createGui(this, "SerialForwarder");
   }
 
+    @Override
   public void message(String msg) {
     renderer.message(msg);
   }
@@ -224,4 +249,36 @@ public class SerialForwarder implements Messenger {
     listenServer = null;
     renderer.updateListenServerStatus(false);
   }
+
+    public SFListen getListenServer() {
+        return listenServer;
+    }
+
+    public String getMotecom() {
+        return motecom;
+    }
+
+    public void setMotecom(String motecom) {
+        this.motecom = motecom;
+    }
+
+    public int getServerPort() {
+        return serverPort;
+    }
+
+    public void setServerPort(int serverPort) {
+        this.serverPort = serverPort;
+    }
+
+    public SFListen getListener() {
+        return listener;
+    }
+
+    public SFRenderer getRenderer() {
+        return renderer;
+    }
+
+    public void setRenderer(SFRenderer renderer) {
+        this.renderer = renderer;
+    }
 }
