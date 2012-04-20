@@ -92,22 +92,29 @@ abstract public class SFProtocol extends AbstractSource implements TimestampedPa
 	}
     }
 	
+    @Override
     protected byte[] readSourcePacket() throws IOException {
 	// Protocol is straightforward: 1 size byte, 8 bytes timestamp, <n-8> data bytes
 	byte[] size = readN(1);
-
-	if (size[0] <= 8)
-	    throw new IOException("0-byte packet");
+        byte[] read = null;
         
         // decide what to do depending on negotiated protocol version
         if (version=='T'){
+            if (size[0] <= 8)
+                throw new IOException("0-byte packet");
+            
             // read 8 bytes - timestamp
             lastTimeStamp = ByteBuffer.allocate(8).put(readN(8)).getLong();
+            read = readN((size[0]-8) & 0xff);
         } else {
+            if (size[0] == 0)
+                throw new IOException("0-byte packet");
+            
             lastTimeStamp = 0;
+            read = readN(size[0] & 0xff);
         }
         
-	byte[] read = readN((size[0]-8) & 0xff);
+	
 	//Dump.dump("reading", read);
 	return read;
     }
