@@ -138,7 +138,7 @@ public class SFClient extends SFProtocol implements Runnable, PacketListenerIF {
 
     @Override
     public void packetReceived(byte[] packet) {
-        this.packetReceived(packet, 0);
+        this.packetReceived(packet, -1);
     }
     
     /**
@@ -152,7 +152,7 @@ public class SFClient extends SFProtocol implements Runnable, PacketListenerIF {
 	failIfClosed();
 
 	try {
-	    return writeSourcePacket(check(packet));
+	    return writeSourcePacket(check(packet), mili);
 	}
 	catch (IOException e) {
 	    close();

@@ -154,9 +154,16 @@ public class PhoenixSource extends Thread implements PhoenixError {
             // this packet source provides timestamping infos
             for (;;) {
                 byte[] readPacket = tSource.readPacket();
-                dispatch(readPacket, tSource.getLastTimestamp());
+                long timestamp = tSource.getLastTimestamp();
+                
+                // if timestamp is null here, provide timing info here - source of time tick
+                timestamp = tSource.supportsTimestamping() ? timestamp : System.currentTimeMillis();
+                
+                // if timestamping is not supported - assign current timestamp
+                dispatch(readPacket, timestamp);
+                readPacket = null;
             }
-        } else {        
+        } else {           
             // faster way than deciding instance everytime in loop, isn't it?
             for (;;) {
                 dispatch(source.readPacket());

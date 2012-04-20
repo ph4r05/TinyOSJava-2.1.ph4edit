@@ -34,6 +34,7 @@ package net.tinyos.packet;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import net.tinyos.util.Dump;
 
 /**
  * This is the TinyOS 2.x serial forwarder protocol. It is incompatible
@@ -104,8 +105,14 @@ abstract public class SFProtocol extends AbstractSource implements TimestampedPa
                 throw new IOException("0-byte packet");
             
             // read 8 bytes - timestamp
-            lastTimeStamp = ByteBuffer.allocate(8).put(readN(8)).getLong();
+            byte[] timestampByte = readN(8);
+            lastTimeStamp = ByteBuffer.allocate(8).put(timestampByte).getLong(0);
+            System.err.println("Read Packet Timestamp: " + lastTimeStamp);
+            
+            // read rest of the packet
             read = readN((size[0]-8) & 0xff);
+            System.err.println("PacketDump: ");
+            Dump.printPacket(System.err, read);
         } else {
             if (size[0] == 0)
                 throw new IOException("0-byte packet");
@@ -170,6 +177,11 @@ abstract public class SFProtocol extends AbstractSource implements TimestampedPa
     
     @Override
     protected boolean writeSourcePacket(byte[] packet) throws IOException {
-	return this.writeSourcePacket(packet, 0);
+	return this.writeSourcePacket(packet, -2);
+    }
+
+    @Override
+    public boolean supportsTimestamping() {
+        return version>='T';
     }
 }
