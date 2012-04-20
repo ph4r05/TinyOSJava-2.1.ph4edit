@@ -64,6 +64,17 @@ public class Listen {
 	  reader.open(PrintStreamMessenger.err);
 	  for (;;) {
 	    byte[] packet = reader.readPacket();
+            long timestamp = 0;
+            
+            // timestamped?
+            if (reader instanceof TimestampedPacketSource){
+                TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
+                timestamp = tReader.getLastTimestamp();
+                if (tReader.supportsTimestamping()){
+                    System.out.println("NextPacketTimestamped: " + timestamp);
+                }
+            }
+            
 	    Dump.printPacket(System.out, packet);
 	    System.out.println();
 	    System.out.flush();
