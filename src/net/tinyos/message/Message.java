@@ -79,6 +79,11 @@ public class Message implements Cloneable {
    * The AM type corresponding to this object. Set to -1 if no AM type is known.
    */
   protected int am_type;
+  
+  /**
+   * Time in milliseconds when message arrived
+   */
+  protected long milliTime;
 
   /** The serial packet this message originated from */
   private SerialPacket serialPacket;
@@ -221,6 +226,7 @@ public class Message implements Cloneable {
     Message copy = cloneself();
     copy.init((byte[]) data.clone(), base_offset, data_length);
     copy.am_type = this.am_type;
+    copy.milliTime = this.milliTime;
     return copy;
   }
 
@@ -234,6 +240,7 @@ public class Message implements Cloneable {
     Message copy = cloneself();
     copy.init(new byte[size], 0, size);
     copy.am_type = this.am_type;
+    copy.milliTime = this.milliTime;
     return copy;
   }
 
@@ -684,6 +691,12 @@ public class Message implements Cloneable {
   protected void setSerialPacket(SerialPacket mySerialPacket) {
     serialPacket = mySerialPacket;
   }
-  
-  
+
+    public long getMilliTime() {
+        return milliTime;
+    }
+
+    public void setMilliTime(long milliTime) {
+        this.milliTime = milliTime;
+    }
 }

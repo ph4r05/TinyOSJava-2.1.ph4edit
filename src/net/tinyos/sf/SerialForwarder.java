@@ -43,7 +43,6 @@
 package net.tinyos.sf;
 
 import java.io.*;
-import net.tinyos.packet.*;
 import net.tinyos.util.*;
 
 public class SerialForwarder implements Messenger {

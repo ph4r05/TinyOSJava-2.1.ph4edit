@@ -32,9 +32,8 @@
 
 package net.tinyos.packet;
 
-import java.util.*;
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.Socket;
 
 /**
  * A tcp/ip (client) byte-source

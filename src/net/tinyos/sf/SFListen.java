@@ -155,7 +155,13 @@ public class SFListen extends Thread implements PacketListenerIF, PhoenixError {
         clients.remove(clientS);
     }
 
+    @Override
     public void packetReceived(byte[] packet) {
+        this.packetReceived(packet, 0);
+    }
+    
+    @Override
+    public void packetReceived(byte[] packet, long mili) {
 	sf.incrementPacketsRead();
     }
 

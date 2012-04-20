@@ -33,6 +33,7 @@
 package net.tinyos.packet;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 /**
  * This is the TinyOS 2.x serial forwarder protocol. It is incompatible
@@ -50,7 +51,12 @@ abstract public class SFProtocol extends AbstractSource
     //      1-byte length followed by n-bytes data. Length must be at least 1.
     final static byte VERSION[] = {'U', ' '};
     int version; // The protocol version we're running (negotiated)
-
+    
+    /**
+     * Size of timestamp in bytes
+     */
+    final static int TIMESTAMP_SIZE=8;
+    
     protected InputStream is;
     protected OutputStream os;
 
@@ -110,15 +116,25 @@ abstract public class SFProtocol extends AbstractSource
 	return data;
     }
 
-    protected boolean writeSourcePacket(byte[] packet) throws IOException {
+    protected boolean writeSourcePacket(byte[] packet, long mili) throws IOException {
 	if (packet.length > 255)
 	    throw new IOException("packet too long");
 	if (packet.length == 0)
 	    throw new IOException("packet too short");
 	//Dump.dump("writing", packet);
-	os.write((byte)packet.length);
+        
+        // write length of packet - include timestamp here
+	os.write((byte)(packet.length + TIMESTAMP_SIZE));
+        // write timestamp first
+        os.write(ByteBuffer.allocate(8).putLong(mili).array());
+        // now write packet itself
 	os.write(packet);
 	os.flush();
 	return true;
+    }
+    
+    @Override
+    protected boolean writeSourcePacket(byte[] packet) throws IOException {
+	return this.writeSourcePacket(packet, 0);
     }
 }

@@ -68,7 +68,12 @@ public class DiagMsg implements PacketListenerIF {
 		listener.run();
 	}
 
-	public void packetReceived(byte[] packet) 
+    @Override
+    public void packetReceived(byte[] packet) {
+        this.packetReceived(packet, 0);
+    }
+        
+	public void packetReceived(byte[] packet, long mili)
     {
         if( packet[PACKET_TYPE_FIELD] == AM_DIAG_MSG ) {
             try 

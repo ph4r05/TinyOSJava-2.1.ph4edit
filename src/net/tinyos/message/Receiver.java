@@ -159,7 +159,14 @@ public class Receiver implements PacketListenerIF {
         + temp.template.amType() + "): " + msg);
   }
 
-  public void packetReceived(byte[] packet) {
+  
+    @Override
+    public void packetReceived(byte[] packet) {
+        this.packetReceived(packet, System.currentTimeMillis());
+    }
+  
+  @Override
+  public void packetReceived(byte[] packet, long mili) {
     if (DEBUG)
       Dump.dump("Received message", packet);
 
@@ -177,37 +184,41 @@ public class Receiver implements PacketListenerIF {
     }
     int length = msg.get_header_length();
 
-    Enumeration en = vec.elements();
-    while (en.hasMoreElements()) {
-      msgTemplate temp = (msgTemplate) en.nextElement();
+    try {
+        Enumeration en = vec.elements();
+        while (en.hasMoreElements()) {
+          msgTemplate temp = (msgTemplate) en.nextElement();
 
-      Message received;
+          Message received;
 
-      // Erk - end up cloning the message multiple times in case
-      // different templates used for different listeners
-      try {
-        received = temp.template.clone(length);
-        received.dataSet(msg.dataGet(), SerialPacket.offset_data(0) + msg.baseOffset(),
-            0, length);
-        received.setSerialPacket(msg); 
-        
-      } catch (ArrayIndexOutOfBoundsException e) {
-        error(temp, "invalid length message received (too long)");
-        continue;
-      } catch (Exception e) {
-        error(temp, "couldn't clone message!");
-        continue;
-      }
+          // Erk - end up cloning the message multiple times in case
+          // different templates used for different listeners
+          try {
+            received = temp.template.clone(length);
+            received.dataSet(msg.dataGet(), SerialPacket.offset_data(0) + msg.baseOffset(),
+                0, length);
+            received.setSerialPacket(msg);
+            received.setMilliTime(mili);
 
-      /*
-       * Messages that are longer than the template might have a variable-sized
-       * array at their end
-       */
-      if (temp.template.dataGet().length > length) {
-        error(temp, "invalid length message received (too short)");
-        continue;
-      }
-      temp.listener.messageReceived(msg.get_header_dest(), received);
+          } catch (ArrayIndexOutOfBoundsException e) {
+            error(temp, "invalid length message received (too long)");
+            continue;
+          } catch (Exception e) {
+            error(temp, "couldn't clone message!");
+            continue;
+          }
+
+          /*
+           * Messages that are longer than the template might have a variable-sized
+           * array at their end
+           */
+          if (temp.template.dataGet().length > length) {
+            error(temp, "invalid length message received (too short)");
+            continue;
+          }
+          temp.listener.messageReceived(msg.get_header_dest(), received);
+        }
+    } catch(Exception e){
     }
   }
 }

@@ -32,8 +32,8 @@
 
 package net.tinyos.packet;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.Socket;
 
 /**
  * Packet source (tcp/ip client) for the new serial forwarder protocol
@@ -52,6 +52,7 @@ class SFSource extends SFProtocol {
 	this.port = port;
     }
 
+    @Override
     protected void openSource() throws IOException {
 	socket = new Socket(host, port);
 	is = socket.getInputStream();
@@ -59,6 +60,7 @@ class SFSource extends SFProtocol {
 	super.openSource();
     }
 
+    @Override
     protected void closeSource() throws IOException {
 	socket.close();
     }

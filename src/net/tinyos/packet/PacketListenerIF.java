@@ -42,4 +42,5 @@ package net.tinyos.packet;
 
 public interface PacketListenerIF extends java.util.EventListener {
   public void packetReceived(byte[] packet);
+  public void packetReceived(byte[] packet, long mili);
 }

@@ -52,7 +52,7 @@ import java.util.*;
 public class PhoenixSource extends Thread implements PhoenixError {
     private PacketSource source;
     private Messenger messages;
-    private Vector listeners;
+    private ArrayList<PacketListenerIF> listeners;
     private boolean phoenixLike = true; // does it rise from the ashes?
     private boolean started;
     private PhoenixError errorHandler = this;
@@ -89,7 +89,7 @@ public class PhoenixSource extends Thread implements PhoenixError {
     PhoenixSource(PacketSource source, Messenger messages) {
 	this.source = source;
 	this.messages = messages;
-	listeners = new Vector();
+	listeners = new ArrayList<PacketListenerIF>();
     }
 
     /**
@@ -135,7 +135,7 @@ public class PhoenixSource extends Thread implements PhoenixError {
      *   be invoked in the context of the PhoenixSource thread.
      */
     public void registerPacketListener(PacketListenerIF listener) {
-	listeners.addElement(listener);
+	listeners.add(listener);
     }
 
     /**
@@ -154,11 +154,13 @@ public class PhoenixSource extends Thread implements PhoenixError {
     }
 
     private void dispatch(byte[] packet) {
-	Enumeration e = listeners.elements();
-	while (e.hasMoreElements()) {
-	    PacketListenerIF listener = (PacketListenerIF)e.nextElement();
-	    listener.packetReceived(packet);
-	}
+        long mili = System.currentTimeMillis();
+        try {
+            for (PacketListenerIF listener : listeners) {
+                listener.packetReceived(packet, mili);
+            }
+        } catch (Exception e) {
+        }
     }
 
     public void run() {
@@ -209,6 +211,7 @@ public class PhoenixSource extends Thread implements PhoenixError {
     }
 
     // Default error handler
+    @Override
     public void error(IOException e) {
 	String msg = source.getName() + " died - exiting (" + e + ")";
 	if (messages != null) {

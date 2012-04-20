@@ -46,10 +46,11 @@
 
 package net.tinyos.sf;
 
-import java.net.*;
-import java.io.*;
-import java.util.*;
-import net.tinyos.packet.*;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import net.tinyos.packet.PacketListenerIF;
+import net.tinyos.packet.SFProtocol;
 
 public class SFClient extends SFProtocol implements Runnable, PacketListenerIF {
     private Thread thread;
@@ -125,12 +126,37 @@ public class SFClient extends SFProtocol implements Runnable, PacketListenerIF {
         }
     }
 
-    public void packetReceived(byte[] packet) {
+    @Override
+    public void packetReceived(byte[] packet, long mili) {
 	try {
-	    writePacket(packet);
+	    writePacket(packet, mili);
 	}
 	catch (IOException e) {
 	    shutdown();
+	}
+    }
+
+    @Override
+    public void packetReceived(byte[] packet) {
+        this.packetReceived(packet, 0);
+    }
+    
+    /**
+     * Custom packet writing - custom timestamping protocol
+     * @param packet
+     * @param mili
+     * @return
+     * @throws IOException 
+     */
+    synchronized public boolean writePacket(byte[] packet, long mili) throws IOException {
+	failIfClosed();
+
+	try {
+	    return writeSourcePacket(check(packet));
+	}
+	catch (IOException e) {
+	    close();
+	    throw e;
 	}
     }
 }
