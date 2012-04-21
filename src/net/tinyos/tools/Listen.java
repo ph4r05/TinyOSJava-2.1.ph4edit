@@ -67,12 +67,18 @@ public class Listen {
             long timestamp = 0;
             
             // timestamped?
+            boolean timestampOK = false;
             if (reader instanceof TimestampedPacketSource){
                 TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
                 timestamp = tReader.getLastTimestamp();
                 if (tReader.supportsTimestamping()){
-                    System.out.println("NextPacketTimestamped: " + timestamp);
+                    System.out.println("PacketTimestamped: " + timestamp);
+                    timestampOK=true;
                 }
+            }
+            
+            if(timestampOK==false){
+                System.out.println("PacketNOTTimestamped: " + System.currentTimeMillis());
             }
             
 	    Dump.printPacket(System.out, packet);
