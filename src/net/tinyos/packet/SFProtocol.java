@@ -160,12 +160,18 @@ abstract public class SFProtocol extends AbstractSource implements TimestampedPa
             os.write(ByteBuffer.allocate(8).putLong(mili).array());
             // now write packet itself            
             os.write(packet);
+            
+//System.err.println("WritePacket T: " + this.getName() + ": ");
+//Dump.printPacket(System.err, packet);
+//System.err.println();
+        
         } else {
             // default version
             // write length of packet - include timestamp here
             os.write((byte)(packet.length));
             // now write packet itself
             os.write(packet);
+//System.err.println("WritePacket: " + this.getName());            
         }
 
 	os.flush();
@@ -174,7 +180,7 @@ abstract public class SFProtocol extends AbstractSource implements TimestampedPa
     
     @Override
     protected boolean writeSourcePacket(byte[] packet) throws IOException {
-	return this.writeSourcePacket(packet, -2);
+	return this.writeSourcePacket(packet, 2);
     }
 
     @Override

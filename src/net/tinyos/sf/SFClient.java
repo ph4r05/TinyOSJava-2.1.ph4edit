@@ -61,13 +61,17 @@ public class SFClient extends SFProtocol implements Runnable, PacketListenerIF {
     public SFClient(Socket socket, SerialForwarder serialForward,
 		    SFListen listenSvr) {
 	super("");
-	thread = new Thread(this);
         sf = serialForward;
         listenServer = listenSvr;
         this.socket = socket;
         InetAddress addr = socket.getInetAddress();
 	name = "client at " + addr.getHostName() +
 	    " (" + addr.getHostAddress() + ")";
+        
+        // construct thread here to be able to name it by connected client
+        thread = new Thread(this);
+        thread.setName("SFClientThread - " + name);
+
         sf.debug.message("new " + name);
     }
 

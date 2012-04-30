@@ -34,13 +34,16 @@ package net.tinyos.packet;
 
 import java.util.*;
 import java.io.*;
+import net.tinyos.util.Dump;
 
 abstract public class StreamByteSource implements ByteSource
 {
     protected InputStream is;
     protected OutputStream os;
     private boolean opened;
-
+    
+    protected String name="default";
+    
     protected StreamByteSource() {
     }
 
@@ -92,6 +95,11 @@ abstract public class StreamByteSource implements ByteSource
 	try {
 	    os.write(bytes);
 	    os.flush();
+            
+//System.err.println("Written to :" + this.name + ";");
+//Dump.printPacket(System.err, bytes);
+//System.err.println();
+
 	}
 	catch (IOException e) {
 	    close();

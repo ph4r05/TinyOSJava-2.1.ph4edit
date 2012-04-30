@@ -46,6 +46,7 @@ public class NetworkByteSource extends StreamByteSource {
     public NetworkByteSource(String host, int port) {
 	this.host = host;
 	this.port = port;
+        this.name = host+":"+port;
     }
 
     protected void openStreams() throws IOException {

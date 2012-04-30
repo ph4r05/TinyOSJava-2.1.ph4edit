@@ -33,9 +33,10 @@
 package net.tinyos.tools;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import net.tinyos.packet.*;
 import net.tinyos.util.*;
-import net.tinyos.message.*;
 
 public class Listen {
     public static void main(String args[]) throws IOException {
@@ -60,6 +61,10 @@ public class Listen {
 	    System.exit(2);
 	}
 
+        // date formater for human readable date format
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+        Calendar calendar = Calendar.getInstance();
+
 	try {
 	  reader.open(PrintStreamMessenger.err);
 	  for (;;) {
@@ -72,13 +77,16 @@ public class Listen {
                 TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
                 timestamp = tReader.getLastTimestamp();
                 if (tReader.supportsTimestamping()){
-                    System.out.println("PacketTimestamped: " + timestamp);
+                    calendar.setTimeInMillis(timestamp);
+                    System.out.println("PacketTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
                     timestampOK=true;
                 }
             }
             
             if(timestampOK==false){
-                System.out.println("PacketNOTTimestamped: " + System.currentTimeMillis());
+                timestamp = System.currentTimeMillis();
+                calendar.setTimeInMillis(timestamp);
+                System.out.println("PacketNOTTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
             }
             
 	    Dump.printPacket(System.out, packet);

@@ -175,4 +175,8 @@ public class SFListen extends Thread implements PacketListenerIF, PhoenixError {
 	    sf.debug.message("shutdown error " + e);
 	}
     }
+
+    public PhoenixSource getSource() {
+        return source;
+    }
 }
