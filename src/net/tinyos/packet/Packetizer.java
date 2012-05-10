@@ -40,7 +40,7 @@ import java.nio.*;
  * The Packetizer class implements the new mote-PC protocol, using a ByteSource
  * for low-level I/O
  */
-public class Packetizer extends AbstractSource implements Runnable {
+public class Packetizer extends AbstractSource implements Runnable, TimestampedPacketSource {
   /*
    * Protocol inspired by, but not identical to, RFC 1663. There is
    * currently no protocol establishment phase, and a single byte
@@ -113,6 +113,10 @@ public class Packetizer extends AbstractSource implements Runnable {
   private Thread reader;
 
   private LinkedList[] received;
+  
+  private LinkedList<Long>[] receivedTimes;
+  
+  private long lastTimestamp=0;
 
   /**
    * Packetizers are built using the makeXXX methods in BuildSource
@@ -126,6 +130,10 @@ public class Packetizer extends AbstractSource implements Runnable {
     received = new LinkedList[256];
     received[P_ACK] = new LinkedList();
     received[P_PACKET_NO_ACK] = new LinkedList();
+    
+    receivedTimes = new LinkedList[256];
+    receivedTimes[P_ACK] = new LinkedList<Long>();
+    receivedTimes[P_PACKET_NO_ACK] = new LinkedList<Long>();
   }
 
   synchronized public void open(Messenger messages) throws IOException {
@@ -146,7 +154,8 @@ public class Packetizer extends AbstractSource implements Runnable {
   protected byte[] readProtocolPacket(int packetType, long deadline)
       throws IOException {
     LinkedList inPackets = received[packetType];
-
+    LinkedList<Long> inPacketsTimes = receivedTimes[packetType];
+    
     // Wait for a packet on inPackets
     synchronized (inPackets) {
       while (inPackets.isEmpty()) {
@@ -160,17 +169,23 @@ public class Packetizer extends AbstractSource implements Runnable {
           throw new IOException("interrupted");
         }
       }
+      
+      if (inPacketsTimes.isEmpty()==false) this.lastTimestamp = inPacketsTimes.removeFirst();
       return (byte[]) inPackets.removeFirst();
     }
   }
 
   // Place a packet in its packet queue, or reject unknown packet
   // types (which don't have a queue)
+  // 
+  // time critical place, add time information about packet here for each packet
+  // queueing could mallform packet arrival times
   protected void pushProtocolPacket(int packetType, byte[] packet) {
     LinkedList inPackets = received[packetType];
-
+    LinkedList<Long> inPacketsTime = receivedTimes[packetType];
     if (inPackets != null) {
       synchronized (inPackets) {
+        inPacketsTime.add(System.currentTimeMillis());
         inPackets.add(packet);
         inPackets.notify();
       }
@@ -184,6 +199,7 @@ public class Packetizer extends AbstractSource implements Runnable {
     }
   }
 
+    @Override
   protected byte[] readSourcePacket() throws IOException {
     // Packetizer packet format is identical to PacketSource's
     for (;;) {
@@ -195,6 +211,7 @@ public class Packetizer extends AbstractSource implements Runnable {
   }
 
   // Write an ack-ed packet
+    @Override
   protected boolean writeSourcePacket(byte[] packet) throws IOException {
     for (int retries = 0; retries < 25; retries++) {
       writeFramedPacket(P_PACKET_ACK, ++seqNo, packet, packet.length);
@@ -221,6 +238,7 @@ public class Packetizer extends AbstractSource implements Runnable {
 
   static private byte ackPacket[] = new byte[0];
 
+    @Override
   public void run() {
     try {
       for (;;) {
@@ -317,6 +335,16 @@ public class Packetizer extends AbstractSource implements Runnable {
       receiveBuffer[count++] = b;
     }
   }
+
+    @Override
+    public long getLastTimestamp() {
+        return this.lastTimestamp;
+    }
+
+    @Override
+    public boolean supportsTimestamping() {
+        return true;
+    }
 
   // Class to build a framed, escaped and crced packet byte stream
   static class Escaper {

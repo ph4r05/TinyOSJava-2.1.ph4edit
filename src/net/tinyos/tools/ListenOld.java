@@ -38,7 +38,7 @@ import java.util.Calendar;
 import net.tinyos.packet.*;
 import net.tinyos.util.*;
 
-public class Listen {
+public class ListenOld {
     public static void main(String args[]) throws IOException {
         String source = null;
         PacketSource reader;
@@ -71,27 +71,27 @@ public class Listen {
 	    byte[] packet = reader.readPacket();
             long timestamp = 0;
             
-            // timestamped?
-            boolean timestampOK = false;
-            if (reader instanceof TimestampedPacketSource){
-                TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
-                timestamp = tReader.getLastTimestamp();
-                if (tReader.supportsTimestamping()){
-                    calendar.setTimeInMillis(timestamp);
-                    System.out.println("PacketTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
-                    
-                    timestamp = System.currentTimeMillis();
-                    calendar.setTimeInMillis(timestamp);
-                    System.out.println("NOWTIME: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
-                    timestampOK=true;
-                }
-            }
-            
-            if(timestampOK==false){
-                timestamp = System.currentTimeMillis();
-                calendar.setTimeInMillis(timestamp);
-                System.out.println("PacketNOTTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
-            }
+//            // timestamped?
+//            boolean timestampOK = false;
+//            if (reader instanceof TimestampedPacketSource){
+//                TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
+//                timestamp = tReader.getLastTimestamp();
+//                if (tReader.supportsTimestamping()){
+//                    calendar.setTimeInMillis(timestamp);
+//                    System.out.println("PacketTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
+//                    
+//                    timestamp = System.currentTimeMillis();
+//                    calendar.setTimeInMillis(timestamp);
+//                    System.out.println("NOWTIME: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
+//                    timestampOK=true;
+//                }
+//            }
+//            
+//            if(timestampOK==false){
+//                timestamp = System.currentTimeMillis();
+//                calendar.setTimeInMillis(timestamp);
+//                System.out.println("PacketNOTTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
+//            }
             
 	    Dump.printPacket(System.out, packet);
 	    System.out.println();

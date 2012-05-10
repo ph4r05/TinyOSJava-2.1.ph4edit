@@ -166,7 +166,7 @@ public class PhoenixSource extends Thread implements PhoenixError {
         } else {           
             // faster way than deciding instance everytime in loop, isn't it?
             for (;;) {
-                dispatch(source.readPacket());
+                dispatch(source.readPacket(), System.currentTimeMillis());
             }
         }
     }
