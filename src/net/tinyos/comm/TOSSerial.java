@@ -285,6 +285,7 @@ public class TOSSerial extends NativeSerial implements SerialPort {
     m_in = new SerialInputStream();
     m_out = new SerialOutputStream();
     m_dispatch = new EventDispatcher();
+    m_dispatch.setName("eventDispatcher: " + portname + "; " + System.currentTimeMillis());
     m_dispatch.start();
   }
 
