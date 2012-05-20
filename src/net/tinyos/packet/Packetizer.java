@@ -152,6 +152,9 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
 
   protected void closeSource() {
     io.close();
+    
+    // close all running threads
+    this.reader.interrupt();
   }
 
   protected byte[] readProtocolPacket(int packetType, long deadline)

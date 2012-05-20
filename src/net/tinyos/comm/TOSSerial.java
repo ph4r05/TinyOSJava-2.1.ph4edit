@@ -37,6 +37,8 @@ public class TOSSerial extends NativeSerial implements SerialPort {
     private boolean m_run;
 
     private boolean busy;
+    
+    private boolean running;
 
     /**
      * Constructor
@@ -45,6 +47,7 @@ public class TOSSerial extends NativeSerial implements SerialPort {
     public EventDispatcher() {
       busy = false;
       m_run = true;
+      running = true;
       
       this.setName("EventDispatcher at: " + System.currentTimeMillis());
     }
@@ -106,6 +109,9 @@ public class TOSSerial extends NativeSerial implements SerialPort {
           }
         }
       }
+      
+      // shutdown running thread
+      running=false;
     }
 
     /**
@@ -125,7 +131,7 @@ public class TOSSerial extends NativeSerial implements SerialPort {
     }
 
     public void run() {
-      while (true) {
+      while (running) {
 
         synchronized (this) {
           while (!m_run) {
@@ -285,7 +291,7 @@ public class TOSSerial extends NativeSerial implements SerialPort {
     m_in = new SerialInputStream();
     m_out = new SerialOutputStream();
     m_dispatch = new EventDispatcher();
-    m_dispatch.setName("eventDispatcher: " + portname + "; " + System.currentTimeMillis());
+    m_dispatch.setName("eventDispatcher: " + portname);
     m_dispatch.start();
   }
 
