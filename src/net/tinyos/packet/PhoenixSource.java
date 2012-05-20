@@ -90,6 +90,9 @@ public class PhoenixSource extends Thread implements PhoenixError {
 	this.source = source;
 	this.messages = messages;
 	listeners = new ArrayList<PacketListenerIF>();
+        
+        // thread name
+        this.setName(source.getName() + "; PhoenixSource");
     }
 
     /**

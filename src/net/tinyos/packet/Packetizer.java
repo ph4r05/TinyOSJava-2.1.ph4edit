@@ -134,6 +134,9 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
     receivedTimes = new LinkedList[256];
     receivedTimes[P_ACK] = new LinkedList<Long>();
     receivedTimes[P_PACKET_NO_ACK] = new LinkedList<Long>();
+    
+    // reader thread name
+    this.reader.setName(name + "; reader");
   }
 
   synchronized public void open(Messenger messages) throws IOException {

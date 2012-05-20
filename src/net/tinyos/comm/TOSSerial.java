@@ -45,6 +45,8 @@ public class TOSSerial extends NativeSerial implements SerialPort {
     public EventDispatcher() {
       busy = false;
       m_run = true;
+      
+      this.setName("EventDispatcher at: " + System.currentTimeMillis());
     }
 
     /**

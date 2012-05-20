@@ -60,6 +60,11 @@ public class SFListen extends Thread implements PacketListenerIF, PhoenixError {
 
     public SFListen(SerialForwarder sf) {
         this.sf = sf;
+        
+        // thread name
+        if (sf!=null && sf.getMotecom()!=null){
+            this.setName(sf.getMotecom() + "; SFListen");
+        }
     }
 
     // IO error on packet source, restart it
