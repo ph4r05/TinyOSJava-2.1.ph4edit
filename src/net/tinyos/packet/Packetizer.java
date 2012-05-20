@@ -34,7 +34,8 @@ import net.tinyos.util.*;
 
 import java.io.*;
 import java.util.*;
-import java.nio.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The Packetizer class implements the new mote-PC protocol, using a ByteSource
@@ -117,6 +118,8 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
   private LinkedList<Long>[] receivedTimes;
   
   private long lastTimestamp=0;
+  
+  private boolean running=true;
 
   /**
    * Packetizers are built using the makeXXX methods in BuildSource
@@ -136,7 +139,7 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
     receivedTimes[P_PACKET_NO_ACK] = new LinkedList<Long>();
     
     // reader thread name
-    this.reader.setName(name + "; reader");
+    this.reader.setName(name + "; Packetizer");
   }
 
   synchronized public void open(Messenger messages) throws IOException {
@@ -151,10 +154,26 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
   }
 
   protected void closeSource() {
-    io.close();
-    
-    // close all running threads
-    this.reader.interrupt();
+      // close all running threads
+      this.running=false;
+      
+      io.close();
+            
+      /**
+       * Try to close running thread here
+       */
+      while (this.reader.isAlive()) {
+          synchronized (this.reader) {
+              this.reader.notify();
+              this.reader.notifyAll();
+              this.reader.interrupt();
+          }
+          try {
+              Thread.sleep(10);
+          } catch (InterruptedException ex) {
+              Logger.getLogger(Packetizer.class.getName()).log(Level.SEVERE, null, ex);
+          }
+      }
   }
 
   protected byte[] readProtocolPacket(int packetType, long deadline)
@@ -247,8 +266,11 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
     @Override
   public void run() {
     try {
-      for (;;) {
+System.err.println("Packetizer start | " + this.getName());            
+      for (;this.running;) {
         byte[] packet = readFramedPacket();
+        if (running==false || packet==null) return;
+        
         int packetType = packet[0] & 0xff;
         int pdataOffset = 1;
 
@@ -264,6 +286,7 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
         System.arraycopy(packet, pdataOffset, dataPacket, 0, dataLength);
         pushProtocolPacket(packetType, dataPacket);
       }
+System.err.println("Packetizer finish | " + this.getName());       
     } catch (IOException e) {
     }
   }
@@ -274,7 +297,7 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
     int count = 0;
     boolean escaped = false;
 
-    for (;;) {
+    for (;this.running;) {
       if (!inSync) {
         message(name + ": resynchronising");
         // re-synchronise
@@ -340,6 +363,8 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
 
       receiveBuffer[count++] = b;
     }
+    
+    return null;
   }
 
     @Override

@@ -25,6 +25,8 @@ package net.tinyos.comm;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.*;
 
 public class TOSSerial extends NativeSerial implements SerialPort {
@@ -95,10 +97,12 @@ public class TOSSerial extends NativeSerial implements SerialPort {
      */
     public void close() {
       m_run = false;
+      int counter = 0;
       
       synchronized (this) {
-        while (busy) {
-          write(0x7E);
+        while (busy && counter <= 50) {
+          counter+=1;
+          write(0x7E);          
           cancelWait();
           try {
             // Wait for the waitForEvent() done event, if it doesn't work after
@@ -109,9 +113,25 @@ public class TOSSerial extends NativeSerial implements SerialPort {
           }
         }
       }
-      
+
       // shutdown running thread
       running=false;
+      
+        /**
+         * Try to close running thread here
+         */
+        while (this.isAlive()) {
+            synchronized (this) {
+                this.notify();
+                this.notifyAll();
+                this.interrupt();
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(TOSSerial.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
 
     /**
@@ -135,15 +155,18 @@ public class TOSSerial extends NativeSerial implements SerialPort {
 
         synchronized (this) {
           while (!m_run) {
+            if (running==false) return;
+              
             try {
               busy = false;
               synchronized (this) {
                 this.notify();
               }
               this.wait();
-            } catch (InterruptedException e) {
+              if (running==false) return;              
+            } catch (Exception e) {
               e.printStackTrace();
-            }
+            } 
           }
         }
 
@@ -312,6 +335,15 @@ public class TOSSerial extends NativeSerial implements SerialPort {
     if (m_dispatch != null) {
       m_dispatch.close();
     }
+    
+    // close streams
+    try {
+        m_in.close();
+        m_out.close();
+    } catch (IOException ex) {
+        Logger.getLogger(TOSSerial.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    
     super.close();
   }
 
