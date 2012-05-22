@@ -183,6 +183,14 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
     
     // Wait for a packet on inPackets
     synchronized (inPackets) {
+        // if inPackets is empty, clean received times to fix possible
+        // problems with synchronization
+        synchronized(inPacketsTimes){
+            if (inPackets.isEmpty()){
+                inPacketsTimes.clear();
+            }
+        }
+        
       while (inPackets.isEmpty()) {
         long now = System.currentTimeMillis();
         if (deadline != 0 && now >= deadline) {
