@@ -30,12 +30,15 @@
  */
 package net.tinyos.packet;
 
+import com.sun.xml.internal.org.jvnet.fastinfoset.stax.LowLevelFastInfosetStreamWriter;
 import net.tinyos.util.*;
 
 import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.tinyos.message.LowlevelTimeSyncMessage;
+import net.tinyos.message.SerialPacket;
 
 /**
  * The Packetizer class implements the new mote-PC protocol, using a ByteSource
@@ -120,7 +123,7 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
   private long lastTimestamp=0;
   
   private boolean running=true;
-
+  
   /**
    * Packetizers are built using the makeXXX methods in BuildSource
    */
@@ -247,6 +250,7 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
     @Override
   protected boolean writeSourcePacket(byte[] packet) throws IOException {
     for (int retries = 0; retries < 25; retries++) {
+      preSendSerialPacket(packet);
       writeFramedPacket(P_PACKET_ACK, ++seqNo, packet, packet.length);
 
       long deadline = System.currentTimeMillis() + ACK_TIMEOUT;
@@ -271,6 +275,62 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
 
   static private byte ackPacket[] = new byte[0];
 
+  /**
+   * Called just before framing and escaping packet before sending.
+   * Is utilized for precise packet UART-to-node time synchronization.
+   * 
+   * Warning! Abstraction violation!!!
+   * 1. packetizer knows that serial packet exists and may be transported in byte[]
+   * 2. packetizer knows that serial packet can contain LowlevelTimeSyncMessage and 
+   *    behaves specifically if this message is detected (current time+offset).
+   * 
+   * This should be done in different manner. Current state is quick fix, but clean
+   * way would require to extend basic message type to include callback to class
+   * that takes care about this pre-sending modifications. Since here is no Msg instance
+   * anymore, it would be needed to add some meta data for write packet.
+   * 
+   * Alternatively, there can be another write packet method that could notify some
+   * class just before packet sending.
+   * 
+   * Another modifications would be needed to pass packet type (e.g. SerialPacket)
+   * to packetizer along with byte[] packet.
+   * @param packet 
+   */
+  private void preSendSerialPacket(byte[] packet){
+      try{
+        // expect serial packet here
+        if (packet[0]!=Serial.TOS_SERIAL_ACTIVE_MESSAGE_ID){
+            return;
+        }
+          
+        // serial packet will be initialized with packet as backing store
+        // => modifs made to tmp will be reflected to byte[] packet
+        // first element is SerialPacket AM type, thus real serial packet starts 
+        // at packet[1]
+        SerialPacket tmp = new SerialPacket(packet, 1);
+        
+        // check if it is low level time sync message
+        if (LowlevelTimeSyncMessage.AM_TYPE!=tmp.amType()){
+            return;
+        }
+        
+        // it is llts message, set correct time
+        // instantiate message with data 
+        // offset_data(0) is static method -> no base_offset here. Need to take into account now
+        LowlevelTimeSyncMessage lltsm = new LowlevelTimeSyncMessage(tmp.dataGet(), tmp.baseOffset()+tmp.offset_data(0), tmp.size_header_length());
+
+        // set correct time with offset added
+        long curTime = System.currentTimeMillis() + lltsm.get_offset();
+
+        // this will change byte[] packet directly since lltsm uses SerialPacket's data
+        // as backing store and same does SerialPacket with byte[] packet
+        lltsm.set_low((curTime & 0xFFFFFFFF));
+        lltsm.set_high((curTime >> 32) & 0xFFFFFFFF);
+      } catch(Exception e){
+          message(name + ": problem with pre-send packet modiffication: " + e.getMessage());
+      }
+  }
+  
     @Override
   public void run() {
     try {
