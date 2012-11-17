@@ -30,15 +30,13 @@
  */
 package net.tinyos.packet;
 
-import com.sun.xml.internal.org.jvnet.fastinfoset.stax.LowLevelFastInfosetStreamWriter;
-import net.tinyos.util.*;
-
 import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.tinyos.message.LowlevelTimeSyncMessage;
 import net.tinyos.message.SerialPacket;
+import net.tinyos.util.*;
 
 /**
  * The Packetizer class implements the new mote-PC protocol, using a ByteSource
