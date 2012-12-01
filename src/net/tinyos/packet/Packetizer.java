@@ -124,6 +124,11 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
   private boolean running=true;
   
   /**
+   * Absolute time stamp for low level synchronization
+   */
+  private long absoluteTime=0;
+  
+  /**
    * Packetizers are built using the makeXXX methods in BuildSource
    */
   Packetizer(String name, ByteSource io) {
@@ -331,13 +336,23 @@ System.err.println(this.getName() + "; preSend; isLowLevel; Serial: " + tmp);
             curTime = lltsm.get_offset() + System.currentTimeMillis();
             // this will change byte[] packet directly since lltsm uses SerialPacket's data
             // as backing store and same does SerialPacket with byte[] packet
-            lltsm.set_low((curTime & 0xFFFFFFFF));
-            lltsm.set_high((curTime >> 32) & 0xFFFFFFFF);
+            if (this.absoluteTime>0){
+                lltsm.set_low(this.absoluteTime - curTime);
+                lltsm.set_high(this.absoluteTime - curTime);
+            } else {
+                lltsm.set_low((curTime & 0xFFFFFFFF));
+                lltsm.set_high((curTime >> 32) & 0xFFFFFFFF);
+            }
         } else {
             // it is 64 bit message, reinit again
             LowlvlTimeSyncMsg64 lltsm64 = new LowlvlTimeSyncMsg64(packet, tmp.baseOffset()+tmp.offset_data(0), tmp.get_header_length());
             curTime = lltsm64.get_offset() + System.currentTimeMillis();
-            lltsm64.set_globalTime(curTime);
+            
+            if (this.absoluteTime>0){
+                lltsm64.set_globalTime(this.absoluteTime - curTime);
+            } else {
+                lltsm64.set_globalTime(curTime);
+            }
         }
         
 System.err.println(this.getName() + "; preSend; altered; curTime: " + curTime
@@ -532,4 +547,12 @@ System.err.println("Packetizer finish | " + this.getName());
     }
     io.writeBytes(realPacket);
   }
+
+    public long getAbsoluteTime() {
+        return absoluteTime;
+    }
+
+    public void setAbsoluteTime(long absoluteTime) {
+        this.absoluteTime = absoluteTime;
+    }
 }
