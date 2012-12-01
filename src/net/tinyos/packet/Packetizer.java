@@ -294,7 +294,8 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
    * anymore, it would be needed to add some meta data for write packet.
    * 
    * Alternatively, there can be another write packet method that could notify some
-   * class just before packet sending.
+   * class just before packet sending - packetizer could have registered pre-send
+   * callbacks for messages.
    * 
    * Another modifications would be needed to pass packet type (e.g. SerialPacket)
    * to packetizer along with byte[] packet.
@@ -337,8 +338,8 @@ System.err.println(this.getName() + "; preSend; isLowLevel; Serial: " + tmp);
             // this will change byte[] packet directly since lltsm uses SerialPacket's data
             // as backing store and same does SerialPacket with byte[] packet
             if (this.absoluteTime>0){
-                lltsm.set_low(this.absoluteTime - curTime);
-                lltsm.set_high(this.absoluteTime - curTime);
+                lltsm.set_low(curTime - this.absoluteTime);
+                lltsm.set_high(curTime - this.absoluteTime);
             } else {
                 lltsm.set_low((curTime & 0xFFFFFFFF));
                 lltsm.set_high((curTime >> 32) & 0xFFFFFFFF);
@@ -349,7 +350,7 @@ System.err.println(this.getName() + "; preSend; isLowLevel; Serial: " + tmp);
             curTime = lltsm64.get_offset() + System.currentTimeMillis();
             
             if (this.absoluteTime>0){
-                lltsm64.set_globalTime(this.absoluteTime - curTime);
+                lltsm64.set_globalTime(curTime - this.absoluteTime);
             } else {
                 lltsm64.set_globalTime(curTime);
             }
@@ -548,10 +549,20 @@ System.err.println("Packetizer finish | " + this.getName());
     io.writeBytes(realPacket);
   }
 
+    /**
+     * Gets absolute time reference point for relative timestamping - LowLevelTimeSyncMsg.
+     * If is zero, then relative timestamping is disabled.
+     * @param absoluteTime 
+     */
     public long getAbsoluteTime() {
         return absoluteTime;
     }
 
+    /**
+     * Sets absolute time reference point for relative timestamping - LowLevelTimeSyncMsg.
+     * If is zero, then relative timestamping is disabled.
+     * @param absoluteTime 
+     */
     public void setAbsoluteTime(long absoluteTime) {
         this.absoluteTime = absoluteTime;
     }
