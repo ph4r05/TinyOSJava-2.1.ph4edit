@@ -34,7 +34,8 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import net.tinyos.message.LowlevelTimeSyncMessage;
+import net.tinyos.message.LowlvlTimeSyncMsg32;
+import net.tinyos.message.LowlvlTimeSyncMsg64;
 import net.tinyos.message.SerialPacket;
 import net.tinyos.util.*;
 
@@ -279,7 +280,7 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
    * 
    * Warning! Abstraction violation!!!
    * 1. packetizer knows that serial packet exists and may be transported in byte[]
-   * 2. packetizer knows that serial packet can contain LowlevelTimeSyncMessage and 
+   * 2. packetizer knows that serial packet can contain LowlvlTimeSyncMsg and 
    *    behaves specifically if this message is detected (current time+offset).
    * 
    * This should be done in different manner. Current state is quick fix, but clean
@@ -306,25 +307,44 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
         // first element is SerialPacket AM type, thus real serial packet starts 
         // at packet[1]
         SerialPacket tmp = new SerialPacket(packet, 1);
-        
+System.err.println(this.getName() + "; preSend; isSerial; AM: " + tmp.amType());
+
         // check if it is low level time sync message
-        if (LowlevelTimeSyncMessage.AM_TYPE!=tmp.amType()){
+        if (LowlvlTimeSyncMsg32.AM_TYPE!=tmp.get_header_type()){
             return;
         }
-        
+System.err.println(this.getName() + "; preSend; isLowLevel; offdata: " + tmp.offset_data(0)
+        + "; size: " + tmp.get_header_length() 
+        + "; tmpbase: " + tmp.baseOffset()
+        + "; total: " + (tmp.baseOffset()+tmp.offset_data(0)));
+System.err.println(this.getName() + "; preSend; isLowLevel; Serial: " + tmp);
+
         // it is llts message, set correct time
         // instantiate message with data 
         // offset_data(0) is static method -> no base_offset here. Need to take into account now
-        LowlevelTimeSyncMessage lltsm = new LowlevelTimeSyncMessage(tmp.dataGet(), tmp.baseOffset()+tmp.offset_data(0), tmp.size_header_length());
-
-        // set correct time with offset added
-        long curTime = System.currentTimeMillis() + lltsm.get_offset();
-
-        // this will change byte[] packet directly since lltsm uses SerialPacket's data
-        // as backing store and same does SerialPacket with byte[] packet
-        lltsm.set_low((curTime & 0xFFFFFFFF));
-        lltsm.set_high((curTime >> 32) & 0xFFFFFFFF);
+        LowlvlTimeSyncMsg32 lltsm = new LowlvlTimeSyncMsg32(packet, tmp.baseOffset()+tmp.offset_data(0), tmp.get_header_length());
+        
+        // determine from message flag whether this is 64 or 32 bit message
+        long curTime;
+        if ((lltsm.get_flags() & (short)1) == 0){
+            // set correct time with offset added
+            curTime = lltsm.get_offset() + System.currentTimeMillis();
+            // this will change byte[] packet directly since lltsm uses SerialPacket's data
+            // as backing store and same does SerialPacket with byte[] packet
+            lltsm.set_low((curTime & 0xFFFFFFFF));
+            lltsm.set_high((curTime >> 32) & 0xFFFFFFFF);
+        } else {
+            // it is 64 bit message, reinit again
+            LowlvlTimeSyncMsg64 lltsm64 = new LowlvlTimeSyncMsg64(packet, tmp.baseOffset()+tmp.offset_data(0), tmp.get_header_length());
+            curTime = lltsm64.get_offset() + System.currentTimeMillis();
+            lltsm64.set_globalTime(curTime);
+        }
+        
+System.err.println(this.getName() + "; preSend; altered; curTime: " + curTime
+        + "; MSG: " + lltsm);        
       } catch(Exception e){
+System.err.println(this.getName() + "; preSend; fuckedup: " + e.getLocalizedMessage()); 
+e.printStackTrace();
           message(name + ": problem with pre-send packet modiffication: " + e.getMessage());
       }
   }
@@ -332,7 +352,6 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
     @Override
   public void run() {
     try {
-System.err.println("Packetizer start | " + this.getName());            
       for (;this.running;) {
         byte[] packet = readFramedPacket();
         if (running==false || packet==null) return;
