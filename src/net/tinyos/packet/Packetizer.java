@@ -313,17 +313,23 @@ public class Packetizer extends AbstractSource implements Runnable, TimestampedP
         // first element is SerialPacket AM type, thus real serial packet starts 
         // at packet[1]
         SerialPacket tmp = new SerialPacket(packet, 1);
-System.err.println(this.getName() + "; preSend; isSerial; AM: " + tmp.amType());
+        
+        if (DEBUG){
+            System.err.println(this.getName() + "; preSend; isSerial; AM: " + tmp.amType());
+        }
 
         // check if it is low level time sync message
         if (LowlvlTimeSyncMsg32.AM_TYPE!=tmp.get_header_type()){
             return;
         }
-System.err.println(this.getName() + "; preSend; isLowLevel; offdata: " + tmp.offset_data(0)
-        + "; size: " + tmp.get_header_length() 
-        + "; tmpbase: " + tmp.baseOffset()
-        + "; total: " + (tmp.baseOffset()+tmp.offset_data(0)));
-System.err.println(this.getName() + "; preSend; isLowLevel; Serial: " + tmp);
+        
+        if (DEBUG){
+            System.err.println(this.getName() + "; preSend; isLowLevel; offdata: " + tmp.offset_data(0)
+                    + "; size: " + tmp.get_header_length() 
+                    + "; tmpbase: " + tmp.baseOffset()
+                    + "; total: " + (tmp.baseOffset()+tmp.offset_data(0)));
+            System.err.println(this.getName() + "; preSend; isLowLevel; Serial: " + tmp);
+        }
 
         // it is llts message, set correct time
         // instantiate message with data 
@@ -355,12 +361,16 @@ System.err.println(this.getName() + "; preSend; isLowLevel; Serial: " + tmp);
                 lltsm64.set_globalTime(curTime);
             }
         }
-        
-System.err.println(this.getName() + "; preSend; altered; curTime: " + curTime
-        + "; MSG: " + lltsm);        
+     
+        if (DEBUG){
+            System.err.println(this.getName() + "; preSend; altered; curTime: " + curTime
+                    + "; MSG: " + lltsm);        
+        }
       } catch(Exception e){
-System.err.println(this.getName() + "; preSend; fuckedup: " + e.getLocalizedMessage()); 
-e.printStackTrace();
+          if (DEBUG){
+            System.err.println(this.getName() + "; preSend; fuckedup: " + e.getLocalizedMessage()); 
+            e.printStackTrace();
+          }
           message(name + ": problem with pre-send packet modiffication: " + e.getMessage());
       }
   }
