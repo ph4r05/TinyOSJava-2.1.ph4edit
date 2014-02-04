@@ -78,11 +78,11 @@ public class Listen {
                 timestamp = tReader.getLastTimestamp();
                 if (tReader.supportsTimestamping()){
                     calendar.setTimeInMillis(timestamp);
-                    System.out.println("PacketTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
+                    System.out.print("# TS[" + timestamp + "]; F[" + formatter.format(calendar.getTime()) + "] ");
                     
                     timestamp = System.currentTimeMillis();
                     calendar.setTimeInMillis(timestamp);
-                    System.out.println("NOWTIME: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
+                    System.out.println("Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
                     timestampOK=true;
                 }
             }
@@ -90,7 +90,7 @@ public class Listen {
             if(timestampOK==false){
                 timestamp = System.currentTimeMillis();
                 calendar.setTimeInMillis(timestamp);
-                System.out.println("PacketNOTTimestamped: " + timestamp + "; formated: " + formatter.format(calendar.getTime()));
+                System.out.println("# Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
             }
             
 	    Dump.printPacket(System.out, packet);
