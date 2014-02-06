@@ -59,6 +59,10 @@ public class TOSSerial extends NativeSerial implements SerialPort {
      * 
      */
     public void open() {
+        /*m_run = true;
+        if( ! this.isAlive() )
+        this.start();*/
+        
       synchronized (this) {
         m_run = true;
         this.notify();

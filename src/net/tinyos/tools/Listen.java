@@ -34,22 +34,73 @@ package net.tinyos.tools;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import net.tinyos.packet.*;
 import net.tinyos.util.*;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.ExampleMode;
+import org.kohsuke.args4j.Option;
 
 public class Listen {
-    public static void main(String args[]) throws IOException {
+    // receives other command line parameters than options
+    @Argument
+    private final List<String> arguments = new ArrayList<String>(8);
+    
+    @Option(name = "--tstamp", aliases = {"-t"}, usage = "Enables timestamp output.")
+    private boolean tstamp=false;
+    
+    @Option(name = "--ascii", aliases = {"-a"}, usage = "ASCII conversion added.")
+    private boolean ascii=false;
+    
+    @Option(name = "--comm", aliases={"-c"}, usage = "Node to attach.\n(default packet source from MOTECOM environment variable).")
+    private String comm = null;
+    
+    private static Listen runningInstance;
+    public static void main(String[] args) {
+        try {
+            // do main on instance
+            runningInstance = new Listen();
+
+            // do the main
+            runningInstance.doMain(args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void doMain(String args[]) throws IOException {
         String source = null;
         PacketSource reader;
-        if (args.length == 2 && args[0].equals("-comm")) {
-          source = args[1];
+        
+        // command line argument parser
+        CmdLineParser parser = new CmdLineParser(this);
+
+        // if you have a wider console, you could increase the value;
+        // here 80 is also the default
+        parser.setUsageWidth(80);
+        try {
+            // parse the arguments.
+            parser.parseArgument(args);
+        } catch (CmdLineException e) {
+            // if there's a problem in the command line,
+            // you'll get this exception. this will report
+            // an error message.
+            System.err.println(e.getMessage());
+            System.err.println("java net.tinyos.tools.Listen  [options...] arguments...");
+            // print the list of available options
+            parser.printUsage(System.err);
+            System.err.println();
+
+            // print option sample. This is useful some time
+            System.err.println(" Example: java net.tinyos.tools.Listen " + parser.printExample(ExampleMode.ALL));
+            return;
         }
-	else if (args.length > 0) {
-	    System.err.println("usage: java net.tinyos.tools.Listen [-comm PACKETSOURCE]");
-	    System.err.println("       (default packet source from MOTECOM environment variable)");
-	    System.exit(2);
-	}
+        
+        source = this.comm;
         if (source == null) {	
   	  reader = BuildSource.makePacketSource();
         }
@@ -73,27 +124,34 @@ public class Listen {
             
             // timestamped?
             boolean timestampOK = false;
-            if (reader instanceof TimestampedPacketSource){
-                TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
-                timestamp = tReader.getLastTimestamp();
-                if (tReader.supportsTimestamping()){
-                    calendar.setTimeInMillis(timestamp);
-                    System.out.print("# TS[" + timestamp + "]; F[" + formatter.format(calendar.getTime()) + "] ");
-                    
+            if (this.tstamp){
+                if (reader instanceof TimestampedPacketSource){
+                    TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
+                    timestamp = tReader.getLastTimestamp();
+                    if (tReader.supportsTimestamping()){
+                        calendar.setTimeInMillis(timestamp);
+                        System.out.print("# TS[" + timestamp + "]; F[" + formatter.format(calendar.getTime()) + "] ");
+
+                        timestamp = System.currentTimeMillis();
+                        calendar.setTimeInMillis(timestamp);
+                        System.out.println("Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
+                        timestampOK=true;
+                    }
+                }
+
+                if(timestampOK==false){
                     timestamp = System.currentTimeMillis();
                     calendar.setTimeInMillis(timestamp);
-                    System.out.println("Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
-                    timestampOK=true;
+                    System.out.println("# Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
                 }
             }
             
-            if(timestampOK==false){
-                timestamp = System.currentTimeMillis();
-                calendar.setTimeInMillis(timestamp);
-                System.out.println("# Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
+	    Dump.printPacket(System.out, packet);
+            if (this.ascii){
+                System.out.print("ASCII: ");
+                printPacket(System.out, packet, 7, packet.length-7);
             }
             
-	    Dump.printPacket(System.out, packet);
 	    System.out.println();
 	    System.out.flush();
 	  }
@@ -101,6 +159,27 @@ public class Listen {
 	catch (IOException e) {
 	    System.err.println("Error on " + reader.getName() + ": " + e);
 	}
+    }
+    
+    public static void printByte(PrintStream p, int b) {
+        if (b>=0x20 && b <=0x7E){
+            char c = (char) (b & 0xff);
+            p.print(c);
+        } else {
+            String bs = Integer.toHexString(b & 0xff).toUpperCase();
+            if (b >=0 && b < 16)
+                p.print("0");
+            p.print(bs + " ");
+        }
+    }
+
+    public static void printPacket(PrintStream p, byte[] packet, int from, int count) {
+	for (int i = from; i < count; i++)
+	    printByte(p, packet[i]);
+    }
+
+    public static void printPacket(PrintStream p, byte[] packet) {
+	printPacket(p, packet, 0, packet.length);
     }
 }
 
