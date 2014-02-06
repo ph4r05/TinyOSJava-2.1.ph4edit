@@ -59,6 +59,9 @@ public class Listen {
     @Option(name = "--comm", aliases={"-c"}, usage = "Node to attach.\n(default packet source from MOTECOM environment variable).")
     private String comm = null;
     
+    @Option(name = "--printf", aliases={"-p"}, usage = "Redirects printf output to a given file.")
+    private String printf = null;
+    
     private static Listen runningInstance;
     public static void main(String[] args) {
         try {
@@ -111,16 +114,25 @@ public class Listen {
 	    System.err.println("Invalid packet source (check your MOTECOM environment variable)");
 	    System.exit(2);
 	}
+        
+        boolean havePrintf=false;
+        FileOutputStream fos = null;
+        if (this.printf!=null){
+            fos = new FileOutputStream(new File(this.printf));
+            havePrintf = true;
+        }
 
         // date formater for human readable date format
         SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
         Calendar calendar = Calendar.getInstance();
+        StringBuilder tstampString = null;
 
 	try {
 	  reader.open(PrintStreamMessenger.err);
 	  for (;;) {
 	    byte[] packet = reader.readPacket();
             long timestamp = 0;
+            tstampString = new StringBuilder(512);
             
             // timestamped?
             boolean timestampOK = false;
@@ -130,11 +142,19 @@ public class Listen {
                     timestamp = tReader.getLastTimestamp();
                     if (tReader.supportsTimestamping()){
                         calendar.setTimeInMillis(timestamp);
-                        System.out.print("# TS[" + timestamp + "]; F[" + formatter.format(calendar.getTime()) + "] ");
+                        tstampString.append("# TS[")
+                                .append(timestamp)
+                                .append("]; F[")
+                                .append(formatter.format(calendar.getTime()))
+                                .append("] ");
 
                         timestamp = System.currentTimeMillis();
                         calendar.setTimeInMillis(timestamp);
-                        System.out.println("Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
+                        tstampString.append("Now[")
+                                .append(timestamp)
+                                .append("]; FN[")
+                                .append(formatter.format(calendar.getTime()))
+                                .append("]\n");
                         timestampOK=true;
                     }
                 }
@@ -142,10 +162,28 @@ public class Listen {
                 if(timestampOK==false){
                     timestamp = System.currentTimeMillis();
                     calendar.setTimeInMillis(timestamp);
-                    System.out.println("# Now[" + timestamp + "]; FN[" + formatter.format(calendar.getTime()) + "]");
+                    tstampString.append("# Now[").append(timestamp).append("]; FN[").append(formatter.format(calendar.getTime())).append("]\n");
                 }
             }
             
+            // Do we have printf?
+            // If yes, dump it to separate file.
+            if (havePrintf && packet.length>=8 && packet[7]==0x64){
+                int len = packet[5];
+                int maxLen = Math.min(len, packet.length-8);
+                
+                for (int i = 0; i < maxLen; i++) {
+                    char nextChar = (char) packet[8+i];
+                    if (nextChar != 0) {
+                        fos.write(nextChar);
+                    }
+                }
+                
+                fos.flush();
+                continue;
+            }
+            
+            System.out.print(tstampString);
 	    Dump.printPacket(System.out, packet);
             if (this.ascii){
                 System.out.print("ASCII: ");
