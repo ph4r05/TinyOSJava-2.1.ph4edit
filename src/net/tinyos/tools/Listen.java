@@ -53,13 +53,16 @@ public class Listen {
     @Option(name = "--tstamp", aliases = {"-t"}, usage = "Enables timestamp output.")
     private boolean tstamp=false;
     
+    @Option(name = "--one-line", aliases = {"-o"}, usage = "Whole packet dump on one line")
+    private boolean oneLine=false;
+    
     @Option(name = "--ascii", aliases = {"-a"}, usage = "ASCII conversion added.")
     private boolean ascii=false;
     
     @Option(name = "--comm", aliases={"-c"}, usage = "Node to attach.\n(default packet source from MOTECOM environment variable).")
     private String comm = null;
     
-    @Option(name = "--printf", aliases={"-p"}, usage = "Redirects printf output to a given file.")
+    @Option(name = "--printf", aliases={"-p"}, usage = "Redirects printf messages to a given file.")
     private String printf = null;
     
     private static Listen runningInstance;
@@ -154,7 +157,9 @@ public class Listen {
                                 .append(timestamp)
                                 .append("]; FN[")
                                 .append(formatter.format(calendar.getTime()))
-                                .append("]\n");
+                                .append("]");
+                        tstampString.append(oneLine ? " " : "\n");
+                        
                         timestampOK=true;
                     }
                 }
@@ -162,7 +167,8 @@ public class Listen {
                 if(timestampOK==false){
                     timestamp = System.currentTimeMillis();
                     calendar.setTimeInMillis(timestamp);
-                    tstampString.append("# Now[").append(timestamp).append("]; FN[").append(formatter.format(calendar.getTime())).append("]\n");
+                    tstampString.append("# Now[").append(timestamp).append("]; FN[").append(formatter.format(calendar.getTime())).append("]");
+                    tstampString.append(oneLine ? " " : "\n");
                 }
             }
             
