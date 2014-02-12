@@ -10,6 +10,44 @@
 <project name="WSNTinyOS" default="default" basedir=".">
     <description>Builds, tests, and runs the project WSNTinyOS.</description>
     <import file="nbproject/build-impl.xml"/>
+
+    <target name="-post-jar">
+        <jar jarfile="dist/tinyos-full.jar">
+            <zipfileset src="${dist.jar}" excludes="META-INF/*" />
+            <manifest>
+                <!-- Who is building this jar? -->
+                <attribute name="Built-By" value="${user.name}"/>
+                <!-- Information about the program itself -->
+                <attribute name="Implementation-Vendor" value="Ph4r05"/>
+                <attribute name="Implementation-Title" value="TinyOS Java SDK"/>
+                <attribute name="Implementation-Version" value="2.1.1a"/>
+                <attribute name="Main-Class" value="wsntinyos.WSNTinyOS"/>
+            </manifest>
+
+            <restrict>
+                <not>
+                    <or>
+                        <name name="**/*.RSA"/>
+                        <name name="**/*.SF"/>
+                        <name name="**/*.DSA"/>
+                    </or>
+                </not>
+
+                <archives>
+                    <zips>
+                        <fileset dir="lib" includes="**/*.jar">
+                            <exclude name="**/*.RSA, **/*.SF, **/*.DSA"/>
+                        </fileset>
+                    </zips>
+                </archives>
+            </restrict>
+        </jar>
+    </target> 
+
+<!--    <zipfileset src="lib/args4j-2.0.17.jar" excludes="META-INF/*" /> -->
+
+
+
     <!--
 
     There exist several targets which are by default empty and which can be 
@@ -51,8 +89,7 @@
       -init-macrodef-junit:     defines macro for junit execution
       -init-macrodef-debug:     defines macro for class debugging
       -init-macrodef-java:      defines macro for class execution
-      -do-jar-with-manifest:    JAR building (if you are using a manifest)
-      -do-jar-without-manifest: JAR building (if you are not using a manifest)
+      -do-jar:                  JAR building
       run:                      execution of project 
       -javadoc-build:           Javadoc generation
       test-report:              JUnit report generation
