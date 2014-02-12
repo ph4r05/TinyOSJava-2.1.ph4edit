@@ -50,8 +50,8 @@ public class Listen {
     @Argument
     private final List<String> arguments = new ArrayList<String>(8);
     
-    @Option(name = "--tstamp", aliases = {"-t"}, usage = "Enables timestamp output.")
-    private boolean tstamp=false;
+    @Option(name = "--tstamp", aliases = {"-t"}, usage = "Enables timestamp output.\n0=no timestamp.\n1=TS stamp\n2=Now\n3=Both")
+    private int tstamp=0;
     
     @Option(name = "--one-line", aliases = {"-o"}, usage = "Whole packet dump on one line")
     private boolean oneLine=false;
@@ -139,25 +139,31 @@ public class Listen {
             
             // timestamped?
             boolean timestampOK = false;
-            if (this.tstamp){
+            if (this.tstamp>0){
                 if (reader instanceof TimestampedPacketSource){
                     TimestampedPacketSource tReader = (TimestampedPacketSource) reader;
                     timestamp = tReader.getLastTimestamp();
                     if (tReader.supportsTimestamping()){
                         calendar.setTimeInMillis(timestamp);
-                        tstampString.append("# TS[")
-                                .append(timestamp)
-                                .append("]; F[")
-                                .append(formatter.format(calendar.getTime()))
-                                .append("] ");
+                        
+                        if ((this.tstamp & 0x1) > 0){
+                            tstampString.append("# TS[")
+                                    .append(timestamp)
+                                    .append("]; F[")
+                                    .append(formatter.format(calendar.getTime()))
+                                    .append("] ");
+                        }
 
                         timestamp = System.currentTimeMillis();
                         calendar.setTimeInMillis(timestamp);
-                        tstampString.append("Now[")
-                                .append(timestamp)
-                                .append("]; FN[")
-                                .append(formatter.format(calendar.getTime()))
-                                .append("]");
+                        
+                        if ((this.tstamp & 0x2) > 0){
+                            tstampString.append("Now[")
+                                    .append(timestamp)
+                                    .append("]; FN[")
+                                    .append(formatter.format(calendar.getTime()))
+                                    .append("]");
+                        }
                         tstampString.append(oneLine ? " " : "\n");
                         
                         timestampOK=true;
@@ -167,8 +173,10 @@ public class Listen {
                 if(timestampOK==false){
                     timestamp = System.currentTimeMillis();
                     calendar.setTimeInMillis(timestamp);
-                    tstampString.append("# Now[").append(timestamp).append("]; FN[").append(formatter.format(calendar.getTime())).append("]");
-                    tstampString.append(oneLine ? " " : "\n");
+                    if ((this.tstamp & 0x2) > 0){
+                        tstampString.append("# Now[").append(timestamp).append("]; FN[").append(formatter.format(calendar.getTime())).append("]");
+                        tstampString.append(oneLine ? " " : "\n");
+                    }
                 }
             }
             
